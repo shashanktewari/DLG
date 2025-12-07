@@ -1,0 +1,57 @@
+import tensorflow as tf
+import tensorflow_hub as hub
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+MODEL_URL = "https://tfhub.dev/tensorflow/efficientdet/d0/1"
+detector = hub.load(MODEL_URL)
+
+def detect_objects_with_boxes(image_path, detector):
+    image = cv2.imread(image_path)
+    if image is None:
+        raise FileNotFoundError(f"Image not found: {image_path}")
+
+    orig_image = image.copy()
+
+    # Prepare model input
+    input_tensor = tf.convert_to_tensor(image)[tf.newaxis, ...]
+
+    # Run model
+    detections = detector(input_tensor)
+
+    boxes = detections["detection_boxes"][0].numpy()
+    classes = detections["detection_classes"][0].numpy().astype(np.int32)
+    scores = detections["detection_scores"][0].numpy()
+    num_detections = int(detections["num_detections"])
+
+    h, w, _ = orig_image.shape
+    threshold = 0.5
+
+    for i in range(num_detections):
+        if scores[i] < threshold:
+            continue
+
+        y1, x1, y2, x2 = boxes[i]
+        x1, x2 = int(x1 * w), int(x2 * w)
+        y1, y2 = int(y1 * h), int(y2 * h)
+
+        label = f"{classes[i]} | {scores[i]:.2f}"
+
+        cv2.rectangle(orig_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(orig_image, label, (x1, y1 - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+    return orig_image
+
+
+image_path = r"traffic.webp"
+
+# Run detection
+result = detect_objects_with_boxes(image_path, detector)
+
+# Show in notebook
+plt.figure(figsize=(10, 8))
+plt.imshow(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+plt.axis("off")
+plt.show()
