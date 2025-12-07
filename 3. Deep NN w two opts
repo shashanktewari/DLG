@@ -1,0 +1,52 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import models, layers, optimizers
+import matplotlib.pyplot as plt
+
+def create_data():
+    x = np.random.randn(1000,10)
+    y = np.random.randn(1000,1)
+    return x,y
+
+def create_model():
+    model = models.Sequential([
+        layers.Dense(50,activation="relu",input_shape=(10,)),
+        layers.Dense(10,activation="relu"),
+        layers.Dense(1)
+    ])
+    return model
+
+def train(model, optimizer, epochs, batch_size, x, y, name):
+    model.compile(optimizer=optimizer, loss="mse")
+    loss_history = []
+    for e in range(epochs):
+        hist = model.fit(x, y, batch_size=batch_size, epochs=1, verbose=0)
+        loss = hist.history["loss"][0]
+        loss_history.append(loss)
+        print(f"{name}: Epoch {e+1}/{epochs}, Loss = {loss:.4f}")
+    return loss_history
+
+x, y = create_data()
+
+sgd = optimizers.SGD(0.01)
+adam = optimizers.Adam(0.01)
+
+sgd_model = create_model()
+adam_model = create_model()
+
+epochs = 50
+batch_size = 32
+
+# Train both models
+sgd_loss = train(sgd_model, sgd, epochs, batch_size, x, y, "SGD")
+adam_loss = train(adam_model, adam, epochs, batch_size, x, y, "Adam")
+
+# Plot results
+plt.plot(sgd_loss, label="SGD")
+plt.plot(adam_loss, label="Adam")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title("SGD vs Adam Loss")
+plt.legend()
+plt.grid(True)
+plt.show()
