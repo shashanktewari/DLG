@@ -1,0 +1,82 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import mnist
+
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+print("Train:", x_train.shape, " Test:", x_test.shape)
+
+plt.figure(figsize=(6, 6))
+for i in range(4):
+    plt.subplot(2, 2, i + 1)
+    plt.imshow(x_train[i], cmap="gray")
+    plt.axis("off")
+plt.show()
+
+num_pixels = 28 * 28
+
+x_train = x_train.reshape(-1, num_pixels) / 255.0
+x_test  = x_test.reshape(-1, num_pixels) / 255.0
+print(f"Reshaped training data : {x_train.shape}")
+
+noise_factor = 0.2
+x_train_noisy = np.clip(x_train + noise_factor * np.random.randn(*x_train.shape), 0., 1.)
+x_test_noisy  = np.clip(x_test  + noise_factor * np.random.randn(*x_test.shape),  0., 1.)
+
+print(f"Shape of noisy training data : {x_train_noisy.shape}")
+
+model = models.Sequential([
+    layers.Dense(500, activation="relu", input_dim=num_pixels),
+    layers.Dense(300, activation="relu"),
+    layers.Dense(100, activation="relu"),
+    layers.Dense(300, activation="relu"),
+    layers.Dense(500, activation="relu"),
+    layers.Dense(num_pixels, activation="sigmoid")
+])
+
+model.compile(optimizer="adam", loss="mse", metrics=["accuracy"])
+
+history = model.fit(
+    x_train_noisy, x_train,
+    epochs=2,
+    batch_size=200,
+    validation_data=(x_test_noisy, x_test)
+)
+
+pred = model.predict(x_test_noisy)
+print(f"Shape of prediction : {pred.shape}")
+
+x_test_img = (x_test.reshape(-1, 28, 28) * 255)
+noisy_img  = (x_test_noisy.reshape(-1, 28, 28) * 255)
+pred_img   = (pred.reshape(-1, 28, 28) * 255)
+
+
+start = 10
+end = 20
+
+# Original
+plt.figure(figsize=(20, 4))
+for i in range(start, end):
+    plt.subplot(2, 10, i - start + 1)
+    plt.imshow(x_test_img[i], cmap="gray")
+    plt.title(f"Label: {y_test[i]}")
+    plt.axis("off")
+plt.show()
+
+# Noisy
+plt.figure(figsize=(20, 4))
+for i in range(start, end):
+    plt.subplot(2, 10, i - start + 1)
+    plt.imshow(noisy_img[i], cmap="gray")
+    plt.axis("off")
+plt.show()
+
+# Denoised Output
+plt.figure(figsize=(20, 4))
+for i in range(start, end):
+    plt.subplot(2, 10, i - start + 1)
+    plt.imshow(pred_img[i], cmap="gray")
+    plt.axis("off")
+plt.show()  
